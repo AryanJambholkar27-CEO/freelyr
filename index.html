@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FREELYR — Your AI Co-Pilot That Fights For Your Income</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0a08;
+      --surface:  #111110;
+      --border:   #232320;
+      --orange:   #ff5c00;
+      --orange2:  #ff8c42;
+      --cream:    #f0ece0;
+      --muted:    #6b6b60;
+      --text:     #e8e4d8;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'Syne', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    .cursor {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
+      width: 12px; height: 12px;
+      background: var(--orange);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    }
+    .cursor-ring {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9998;
+      width: 36px; height: 36px;
+      border: 1px solid rgba(255,92,0,0.4);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.15s ease-out, width 0.3s, height 0.3s;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9997; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.03;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 48px;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(10,10,8,0.92);
+      backdrop-filter: blur(12px);
+      border-color: var(--border);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 3px;
+      color: var(--cream);
+    }
+    .nav-logo span { color: var(--orange); }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px;
+    }
+    .nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--orange); }
+    .nav-cta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--orange);
+      padding: 10px 24px;
+      border: none;
+      cursor: none;
+      transition: background 0.2s, transform 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .nav-cta:hover { background: var(--orange2); transform: translateY(-1px); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 140px 48px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-grid-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.4;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%);
+    }
+    .hero-glow {
+      position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(255,92,0,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 24px;
+      position: relative; z-index: 1;
+      opacity: 0; animation: fadeUp 0.7s 0.2s forwards;
+    }
+    .hero-headline {
+      font-family: var(--font-display);
+      font-size: clamp(72px, 10vw, 148px);
+      line-height: 0.92;
+      letter-spacing: 2px;
+      color: var(--cream);
+      position: relative; z-index: 1;
+      max-width: 900px;
+      opacity: 0; animation: fadeUp 0.8s 0.35s forwards;
+    }
+    .hero-headline em { font-style: normal; color: var(--orange); }
+    .hero-sub {
+      margin-top: 32px;
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      position: relative; z-index: 1;
+      opacity: 0; animation: fadeUp 0.8s 0.5s forwards;
+    }
+    .hero-sub strong { color: var(--text); font-weight: 600; }
+    .hero-actions {
+      margin-top: 48px;
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+      position: relative; z-index: 1;
+      opacity: 0; animation: fadeUp 0.8s 0.65s forwards;
+    }
+    .btn-primary {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--orange);
+      padding: 18px 40px;
+      border: none; cursor: none;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 0 0 rgba(255,92,0,0.4);
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary:hover {
+      background: var(--orange2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(255,92,0,0.3);
+    }
+    .hero-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .hero-stats {
+      position: absolute; right: 48px; bottom: 80px; z-index: 1;
+      display: flex; flex-direction: column; gap: 32px; align-items: flex-end;
+      opacity: 0; animation: fadeUp 0.8s 0.8s forwards;
+    }
+    .stat-item { text-align: right; }
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 48px;
+      letter-spacing: 1px;
+      color: var(--cream);
+      line-height: 1;
+    }
+    .stat-num span { color: var(--orange); }
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .hero-line {
+      position: absolute; left: 48px; bottom: 0; top: 0; width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--orange), transparent);
+      opacity: 0.3;
+    }
+
+    /* STRIP */
+    .strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 48px;
+      display: flex; gap: 48px; overflow: hidden;
+      background: var(--surface);
+    }
+    .strip-inner {
+      display: flex; gap: 80px; align-items: center;
+      animation: marquee 20s linear infinite;
+      white-space: nowrap;
+    }
+    .strip-item {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .strip-item::before { content: '●'; color: var(--orange); font-size: 8px; }
+
+    /* SECTIONS */
+    .section { padding: 120px 48px; }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 6vw, 72px);
+      letter-spacing: 1px;
+      color: var(--cream);
+      line-height: 1;
+      max-width: 700px;
+    }
+    .section-title em { font-style: normal; color: var(--orange); }
+
+    /* PAIN GRID */
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      margin-top: 64px;
+      border: 1px solid var(--border);
+    }
+    .pain-card {
+      background: var(--surface);
+      padding: 40px 36px;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+    }
+    .pain-card:hover { background: #161614; }
+    .pain-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--orange);
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+    .pain-card:hover::before { transform: scaleX(1); }
+    .pain-num { font-family: var(--font-display); font-size: 64px; color: var(--border); line-height: 1; margin-bottom: 16px; }
+    .pain-title { font-size: 16px; font-weight: 700; color: var(--cream); margin-bottom: 12px; letter-spacing: 0.5px; }
+    .pain-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* AGENTS */
+    .agents-section {
+      padding: 120px 48px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .agents-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 80px; flex-wrap: wrap; gap: 32px; }
+    .agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .agents-grid-bottom { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px; }
+    .agent-card {
+      border: 1px solid var(--border);
+      padding: 40px 32px;
+      position: relative;
+      transition: border-color 0.3s, transform 0.3s;
+      cursor: none;
+      background: var(--bg);
+    }
+    .agent-card:hover { border-color: var(--orange); transform: translateY(-4px); }
+    .agent-tag {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--orange); background: rgba(255,92,0,0.1); padding: 4px 12px; display: inline-block; margin-bottom: 24px;
+    }
+    .agent-icon { font-size: 32px; margin-bottom: 16px; }
+    .agent-name { font-family: var(--font-display); font-size: 32px; letter-spacing: 1px; color: var(--cream); margin-bottom: 16px; }
+    .agent-desc { font-size: 14px; color: var(--muted); line-height: 1.8; }
+    .agent-feature { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .agent-feat-item {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; color: var(--text);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .agent-feat-item::before { content: '→'; color: var(--orange); }
+
+    /* HOW IT WORKS */
+    .how-section { padding: 120px 48px; }
+    .steps {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0; margin-top: 80px; border: 1px solid var(--border);
+    }
+    .step { padding: 48px 32px; border-right: 1px solid var(--border); position: relative; }
+    .step:last-child { border-right: none; }
+    .step-num { font-family: var(--font-display); font-size: 80px; color: var(--border); line-height: 1; margin-bottom: 24px; }
+    .step-title { font-size: 16px; font-weight: 700; color: var(--cream); margin-bottom: 12px; }
+    .step-desc { font-size: 13px; color: var(--muted); line-height: 1.8; }
+    .step-arrow { position: absolute; top: 48px; right: -12px; font-size: 20px; color: var(--orange); z-index: 2; }
+
+    /* PROOF */
+    .proof-section { padding: 120px 48px; background: var(--surface); border-top: 1px solid var(--border); }
+    .proof-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 64px; }
+    .proof-card { border: 1px solid var(--border); padding: 36px 32px; background: var(--bg); position: relative; }
+    .proof-quote { font-size: 15px; color: var(--text); line-height: 1.8; margin-bottom: 24px; font-style: italic; }
+    .proof-quote::before {
+      content: '"'; font-family: var(--font-display); font-size: 48px; color: var(--orange);
+      line-height: 0; vertical-align: -20px; margin-right: 4px;
+    }
+    .proof-author { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .proof-author strong { color: var(--orange); }
+
+    /* ===================== */
+    /* PRICING SECTION — NEW */
+    /* ===================== */
+    .pricing-section {
+      padding: 120px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pricing-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse, rgba(255,92,0,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .pricing-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      flex-wrap: wrap; gap: 32px; margin-bottom: 24px;
+    }
+    .pricing-header-right {
+      text-align: right;
+    }
+    .pricing-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .toggle-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .toggle-btn.active {
+      background: var(--orange);
+      color: var(--bg);
+    }
+    .toggle-note {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--orange);
+      text-align: right;
+    }
+
+    /* ROI bar */
+    .roi-bar {
+      background: rgba(255,92,0,0.08);
+      border: 1px solid rgba(255,92,0,0.2);
+      padding: 16px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      margin-bottom: 40px;
+    }
+    .roi-bar-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--text);
+    }
+    .roi-bar-text strong { color: var(--orange); }
+    .roi-bar-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--orange);
+      border: 1px solid var(--orange);
+      padding: 4px 12px;
+    }
+
+    /* Launch sequence timeline */
+    .launch-sequence {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      margin-bottom: 64px;
+      position: relative;
+    }
+    .launch-step {
+      padding: 28px 24px;
+      border-right: 1px solid var(--border);
+      position: relative;
+      transition: background 0.3s;
+    }
+    .launch-step:last-child { border-right: none; }
+    .launch-step:hover { background: var(--surface); }
+    .launch-step.active {
+      background: rgba(255,92,0,0.06);
+    }
+    .launch-step.active::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--orange);
+    }
+    .ls-phase {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .ls-price {
+      font-family: var(--font-display);
+      font-size: 36px;
+      letter-spacing: 1px;
+      color: var(--cream);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .ls-price.highlight { color: var(--orange); }
+    .ls-label {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .ls-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: var(--orange);
+      color: var(--bg);
+      padding: 3px 8px;
+      margin-top: 8px;
+    }
+    .ls-badge.outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* Plan Cards */
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: 1fr 1.08fr 1fr;
+      gap: 0;
+      border: 1px solid var(--border);
+    }
+
+    .plan-card {
+      padding: 48px 40px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.3s;
+    }
+    .plan-card:last-child { border-right: none; }
+    .plan-card:hover { background: #161614; }
+    .plan-card.featured {
+      background: var(--orange);
+      border-right-color: transparent;
+    }
+    .plan-card.featured:hover { background: #ff6a1a; }
+
+    .plan-tier {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .plan-card.featured .plan-tier { color: rgba(10,10,8,0.6); }
+
+    .plan-name {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: var(--cream);
+      margin-bottom: 4px;
+    }
+    .plan-card.featured .plan-name { color: var(--bg); }
+
+    .plan-tagline {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+    .plan-card.featured .plan-tagline { color: rgba(10,10,8,0.65); }
+
+    .plan-price-block { margin-bottom: 8px; }
+    .plan-price {
+      font-family: var(--font-display);
+      font-size: 80px;
+      letter-spacing: -2px;
+      color: var(--cream);
+      line-height: 1;
+    }
+    .plan-card.featured .plan-price { color: var(--bg); }
+    .plan-price sup {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      vertical-align: top;
+      margin-top: 18px;
+      display: inline-block;
+      letter-spacing: 0;
+    }
+    .plan-price sub {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      letter-spacing: 0;
+      vertical-align: baseline;
+      font-weight: 400;
+    }
+    .plan-annual-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      min-height: 18px;
+    }
+    .plan-card.featured .plan-annual-note { color: rgba(10,10,8,0.6); }
+    .plan-annual-note .save { color: var(--orange); font-weight: 700; }
+    .plan-card.featured .plan-annual-note .save { color: var(--bg); }
+
+    .plan-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 28px;
+    }
+    .plan-card.featured .plan-divider { background: rgba(10,10,8,0.2); }
+
+    .plan-features {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 14px;
+      flex: 1;
+      margin-bottom: 36px;
+    }
+    .plan-feat {
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: flex-start; gap: 12px;
+      line-height: 1.5;
+    }
+    .plan-card.featured .plan-feat { color: var(--bg); }
+    .feat-check {
+      color: var(--orange);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .plan-card.featured .feat-check { color: var(--bg); }
+    .feat-muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .plan-card.featured .feat-muted { color: rgba(10,10,8,0.55); }
+
+    .plan-btn {
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 18px;
+      border: 1px solid var(--orange);
+      background: transparent;
+      color: var(--orange);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+      margin-top: auto;
+    }
+    .plan-btn:hover { background: var(--orange); color: var(--bg); transform: translateY(-2px); }
+    .plan-card.featured .plan-btn {
+      background: var(--bg);
+      border-color: var(--bg);
+      color: var(--orange);
+    }
+    .plan-card.featured .plan-btn:hover {
+      background: rgba(10,10,8,0.8);
+      transform: translateY(-2px);
+    }
+
+    .plan-badge {
+      position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+      background: var(--bg);
+      color: var(--orange);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border: 1px solid var(--orange);
+      white-space: nowrap;
+    }
+
+    /* Founding note */
+    .founding-note {
+      margin-top: 28px;
+      border: 1px solid var(--border);
+      padding: 24px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      background: var(--surface);
+    }
+    .founding-note-left {}
+    .fn-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 6px;
+    }
+    .fn-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .fn-desc strong { color: var(--text); }
+    .fn-counter {
+      text-align: right;
+    }
+    .fn-count {
+      font-family: var(--font-display);
+      font-size: 48px;
+      color: var(--orange);
+      line-height: 1;
+    }
+    .fn-count-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Guarantee */
+    .guarantee-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 28px;
+      border: 1px solid var(--border);
+    }
+    .guarantee-item {
+      padding: 28px 32px;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .guarantee-item:last-child { border-right: none; }
+    .g-icon { font-size: 24px; flex-shrink: 0; }
+    .g-title { font-size: 14px; font-weight: 700; color: var(--cream); margin-bottom: 4px; }
+    .g-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    /* WAITLIST CTA */
+    .cta-section {
+      padding: 140px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+    }
+    .cta-section::before {
+      content: 'FREELYR';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-display);
+      font-size: clamp(120px, 20vw, 280px);
+      color: transparent;
+      -webkit-text-stroke: 1px var(--border);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .cta-inner { position: relative; z-index: 1; }
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(48px, 7vw, 96px);
+      letter-spacing: 2px;
+      color: var(--cream);
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+    .cta-title em { font-style: normal; color: var(--orange); }
+    .cta-sub { font-size: 16px; color: var(--muted); max-width: 480px; margin: 0 auto 48px; line-height: 1.7; }
+    .waitlist-form { display: flex; gap: 0; max-width: 480px; margin: 0 auto; }
+    .waitlist-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border); border-right: none;
+      padding: 16px 20px; font-family: var(--font-mono); font-size: 13px; color: var(--text);
+      outline: none; transition: border-color 0.2s;
+    }
+    .waitlist-input:focus { border-color: var(--orange); }
+    .waitlist-input::placeholder { color: var(--muted); }
+    .waitlist-btn {
+      font-family: var(--font-mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+      background: var(--orange); color: var(--bg); border: none; padding: 16px 28px;
+      cursor: pointer; transition: background 0.2s; white-space: nowrap;
+    }
+    .waitlist-btn:hover { background: var(--orange2); }
+    .cta-guarantee { margin-top: 20px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .cta-referral { margin-top: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--orange); letter-spacing: 1px; }
+
+    /* FOOTER */
+    footer {
+      padding: 40px 48px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    .footer-logo { font-family: var(--font-display); font-size: 22px; letter-spacing: 3px; color: var(--cream); }
+    .footer-logo span { color: var(--orange); }
+    .footer-copy { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; color: var(--muted); }
+
+    .divider { height: 1px; background: var(--border); margin: 0 48px; }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .reveal {
+      opacity: 0; transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* MOBILE */
+    @media (max-width: 900px) {
+      .agents-grid, .agents-grid-bottom { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .pricing-cards { grid-template-columns: 1fr; border: none; gap: 2px; }
+      .plan-card { border-right: none !important; border: 1px solid var(--border); }
+      .launch-sequence { grid-template-columns: 1fr 1fr; }
+      .guarantee-row { grid-template-columns: 1fr; }
+      .guarantee-item { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 120px 24px 80px; }
+      .hero-stats { display: none; }
+      .section, .agents-section, .how-section, .proof-section, .pricing-section { padding: 80px 24px; }
+      .cta-section { padding: 100px 24px; }
+      footer { padding: 32px 24px; }
+      .strip { padding: 16px 24px; }
+      .steps { grid-template-columns: 1fr; }
+      .step { border-right: none; border-bottom: 1px solid var(--border); }
+      .divider { margin: 0 24px; }
+      .waitlist-form { flex-direction: column; }
+      .waitlist-input { border-right: 1px solid var(--border); }
+      .launch-sequence { grid-template-columns: 1fr 1fr; }
+      .pricing-header { flex-direction: column; align-items: flex-start; }
+      .pricing-header-right { text-align: left; }
+      .founding-note { flex-direction: column; }
+      .fn-counter { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <div class="nav-logo">FREE<span>LYR</span></div>
+    <div class="nav-links">
+      <a href="#agents" class="nav-link">Agents</a>
+      <a href="#how" class="nav-link">How It Works</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+    </div>
+    <a href="#waitlist" class="nav-cta">Join Waitlist</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-line"></div>
+    <div class="hero-eyebrow">AI-Powered Freelancer Operating System</div>
+    <h1 class="hero-headline">YOUR AI<br>CO-PILOT THAT<br><em>FIGHTS FOR</em><br>YOUR INCOME</h1>
+    <p class="hero-sub">
+      Stop losing <strong>$1,200/month</strong> to scope creep, unpaid invoices, and income blindness.
+      FREELYR's AI agents protect your money — automatically, 24/7.
+    </p>
+    <div class="hero-actions">
+      <a href="#waitlist" class="btn-primary">Join the Waitlist</a>
+      <span class="hero-note">Free beta · No credit card · Limited spots</span>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">1.5<span>B</span></div>
+        <div class="stat-label">Freelancers Globally</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">62<span>%</span></div>
+        <div class="stat-label">Struggle Finding Clients</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">58<span>%</span></div>
+        <div class="stat-label">Ghosted on Payment</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STRIP -->
+  <div class="strip">
+    <div class="strip-inner">
+      <span class="strip-item">Scope Creep Protection</span>
+      <span class="strip-item">Auto Invoice Follow-Up</span>
+      <span class="strip-item">60-Day Income Forecast</span>
+      <span class="strip-item">AI Brief Clarifier</span>
+      <span class="strip-item">Smart Lead Hunter</span>
+      <span class="strip-item">File Locking Until Paid</span>
+      <span class="strip-item">Scope Creep Protection</span>
+      <span class="strip-item">Auto Invoice Follow-Up</span>
+      <span class="strip-item">60-Day Income Forecast</span>
+      <span class="strip-item">AI Brief Clarifier</span>
+      <span class="strip-item">Smart Lead Hunter</span>
+      <span class="strip-item">File Locking Until Paid</span>
+    </div>
+  </div>
+
+  <!-- PAIN -->
+  <section class="section reveal">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">YOU'RE LOSING MONEY<br>EVERY SINGLE <em>DAY</em></h2>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-num">01</div>
+        <div class="pain-title">Scope Creep Is Silent</div>
+        <div class="pain-desc">Clients keep adding "small" requests. You keep absorbing them. By the end, you've done 40% more work for 0% more pay.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">02</div>
+        <div class="pain-title">Chasing Invoices Is Exhausting</div>
+        <div class="pain-desc">The average freelancer follows up on invoices 4 times per client. That's hours of mental energy drained chasing what you already earned.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">03</div>
+        <div class="pain-title">Income Blindness Is Deadly</div>
+        <div class="pain-desc">You never know if next month will be feast or famine. No pipeline visibility = no financial confidence = constant anxiety.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">04</div>
+        <div class="pain-title">Bad Briefs Kill Projects</div>
+        <div class="pain-desc">"Modern design." "Quick turnaround." "A few revisions." Vague briefs lead to endless changes, scope blowouts, and unhappy clients.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- AGENTS -->
+  <section class="agents-section reveal" id="agents">
+    <div class="agents-header">
+      <div>
+        <div class="section-label">The Solution</div>
+        <h2 class="section-title">5 AI AGENTS.<br>ONE <em>MISSION.</em></h2>
+      </div>
+      <p style="max-width:360px; color:var(--muted); font-size:15px; line-height:1.7;">
+        Every tool on the market manages admin <em>after</em> problems happen. FREELYR's agents prevent problems <strong style="color:var(--text)">before they happen.</strong>
+      </p>
+    </div>
+    <div class="agents-grid">
+      <div class="agent-card">
+        <div class="agent-tag">Agent 01</div>
+        <div class="agent-icon">🛡️</div>
+        <div class="agent-name">SCOPE GUARD</div>
+        <div class="agent-desc">Reads every client message and detects scope creep in real-time. Alerts you instantly and generates a change order with one click.</div>
+        <div class="agent-feature">
+          <div class="agent-feat-item">AI reads client messages live</div>
+          <div class="agent-feat-item">Detects risky language patterns</div>
+          <div class="agent-feat-item">One-click change order draft</div>
+          <div class="agent-feat-item">Legal timestamp logging</div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-tag">Agent 02</div>
+        <div class="agent-icon">📈</div>
+        <div class="agent-name">INCOME PREDICTOR</div>
+        <div class="agent-desc">30/60/90-day income forecasting with gap warnings. Flags late-paying clients before they become a cash flow crisis.</div>
+        <div class="agent-feature">
+          <div class="agent-feat-item">30/60/90-day projections</div>
+          <div class="agent-feat-item">Income gap early warnings</div>
+          <div class="agent-feat-item">Late-payer risk scoring</div>
+          <div class="agent-feat-item">Pipeline health dashboard</div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-tag">Agent 03</div>
+        <div class="agent-icon">💰</div>
+        <div class="agent-name">COLLECTIONS AGENT</div>
+        <div class="agent-desc">Monitors invoices and automatically follows up with escalating tone — friendly → firm → final. Locks your files until payment clears.</div>
+        <div class="agent-feature">
+          <div class="agent-feat-item">Auto follow-ups with tone AI</div>
+          <div class="agent-feat-item">File locking until paid</div>
+          <div class="agent-feat-item">Dispute email drafts</div>
+          <div class="agent-feat-item">Payment behavior tracking</div>
+        </div>
+      </div>
+    </div>
+    <div class="agents-grid-bottom">
+      <div class="agent-card">
+        <div class="agent-tag">Agent 04 — V2</div>
+        <div class="agent-icon">🎯</div>
+        <div class="agent-name">LEAD HUNTER</div>
+        <div class="agent-desc">Monitors Reddit, LinkedIn, Slack communities and job boards 24/7. Filters by your rate, drafts personalized outreach, learns what gets responses.</div>
+        <div class="agent-feature">
+          <div class="agent-feat-item">24/7 multi-platform monitoring</div>
+          <div class="agent-feat-item">Rate + skill filtering</div>
+          <div class="agent-feat-item">Personalized outreach drafts</div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-tag">Agent 05 — V2</div>
+        <div class="agent-icon">📋</div>
+        <div class="agent-name">BRIEF CLARIFIER</div>
+        <div class="agent-desc">Analyzes new client briefs and flags risky language before you start. Generates clarifying questions and a watertight scope of work automatically.</div>
+        <div class="agent-feature">
+          <div class="agent-feat-item">Risk language detection</div>
+          <div class="agent-feat-item">Scope of work generator</div>
+          <div class="agent-feat-item">Mutual agreement checklist</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section reveal" id="how">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">SETUP IN <em>MINUTES.</em><br>PROTECTED FOREVER.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Connect Your Work</div>
+        <div class="step-desc">Link your email, projects, and invoices. FREELYR syncs your existing workflow in under 5 minutes.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Agents Go Live</div>
+        <div class="step-desc">Your 3 core AI agents activate immediately — monitoring clients, tracking invoices, projecting income.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Get Alerted</div>
+        <div class="step-desc">FREELYR catches problems the moment they appear and gives you one-click actions to resolve them.</div>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-title">Keep More Money</div>
+        <div class="step-desc">Every scope creep caught, every invoice collected, every gap predicted — straight to your pocket.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOCIAL PROOF -->
+  <section class="proof-section reveal">
+    <div class="section-label">Early Feedback</div>
+    <h2 class="section-title">BETA USERS<br><em>LOVE IT.</em></h2>
+    <div class="proof-grid">
+      <div class="proof-card">
+        <div class="proof-quote">FREELYR caught a scope creep request I would have just said yes to. That one alert saved me a $400 change order conversation.</div>
+        <div class="proof-author"><strong>@alex_designs</strong> — UI/UX Freelancer</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-quote">The collections agent followed up on a 3-week overdue invoice while I was sleeping. Got paid the next morning. I didn't lift a finger.</div>
+        <div class="proof-author"><strong>@rajwrites</strong> — Freelance Copywriter</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-quote">Finally I can see 60 days ahead. I stopped panicking about dry months because FREELYR flags gaps early enough to actually do something about them.</div>
+        <div class="proof-author"><strong>@sara_devs</strong> — Full-Stack Developer</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= -->
+  <!-- PRICING SECTION — UPDATED -->
+  <!-- ========================= -->
+  <section class="pricing-section reveal" id="pricing">
+    <div class="pricing-header">
+      <div>
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">STOP LOSING<br><em>$1,200/MO.</em><br>FOR $0.97/DAY.</h2>
+      </div>
+      <div class="pricing-header-right">
+        <div class="pricing-toggle">
+          <button class="toggle-btn active" id="toggleMonthly" onclick="setToggle('monthly')">Monthly</button>
+          <button class="toggle-btn" id="toggleAnnual" onclick="setToggle('annual')">Annual</button>
+        </div>
+        <div class="toggle-note" id="toggleNote">💡 Switch to Annual — save 2 months free</div>
+      </div>
+    </div>
+
+    <!-- ROI Bar -->
+    <div class="roi-bar">
+      <div class="roi-bar-text">
+        One saved invoice (<strong>~$200</strong>) = FREELYR paid for <strong>7 months</strong>. One caught scope creep = ROI in <strong>day one</strong>.
+      </div>
+      <div class="roi-bar-tag">Obvious ROI</div>
+    </div>
+
+    <!-- Launch Sequence -->
+    <div class="launch-sequence">
+      <div class="launch-step">
+        <div class="ls-phase">Right Now</div>
+        <div class="ls-price">$0</div>
+        <div class="ls-label">Beta Access — 10 hand-picked users. Free forever.</div>
+        <div class="ls-badge outline">Closed</div>
+      </div>
+      <div class="launch-step active">
+        <div class="ls-phase">Founding Members · First 100 Only</div>
+        <div class="ls-price highlight">$9<span style="font-family:var(--font-mono);font-size:16px;color:var(--muted)">/mo</span></div>
+        <div class="ls-label">Locked in forever. Never goes up. Ever.</div>
+        <div class="ls-badge">🔥 Open Now</div>
+      </div>
+      <div class="launch-step">
+        <div class="ls-phase">Public Launch · 30–45 Days</div>
+        <div class="ls-price">$19<span style="font-family:var(--font-mono);font-size:16px;color:var(--muted)">/mo</span></div>
+        <div class="ls-label">Early bird window. Before price goes to standard.</div>
+        <div class="ls-badge outline">Coming Soon</div>
+      </div>
+      <div class="launch-step">
+        <div class="ls-phase">Standard · Month 4+</div>
+        <div class="ls-price">$29<span style="font-family:var(--font-mono);font-size:16px;color:var(--muted)">/mo</span></div>
+        <div class="ls-label">Full price. Held permanently. No random discounts.</div>
+        <div class="ls-badge outline">Future</div>
+      </div>
+    </div>
+
+    <!-- Plan Cards -->
+    <div class="pricing-cards">
+
+      <!-- FREE -->
+      <div class="plan-card">
+        <div class="plan-tier">Tier 01 — Starter</div>
+        <div class="plan-name">FREE</div>
+        <div class="plan-tagline">Try it. Feel the value. Then upgrade when you're ready.</div>
+        <div class="plan-price-block">
+          <div class="plan-price">$0</div>
+        </div>
+        <div class="plan-annual-note">Free forever · No credit card</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feat"><span class="feat-check">✓</span> 3 active projects tracked</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Scope Guard — read-only alerts</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> 1 invoice follow-up template/month</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> 30-day income dashboard</li>
+          <li class="plan-feat" style="opacity:0.4"><span class="feat-check">✗</span> <span class="feat-muted">4th project → paywall</span></li>
+          <li class="plan-feat" style="opacity:0.4"><span class="feat-check">✗</span> <span class="feat-muted">Auto follow-ups → paywall</span></li>
+          <li class="plan-feat" style="opacity:0.4"><span class="feat-check">✗</span> <span class="feat-muted">60/90-day forecast → paywall</span></li>
+        </ul>
+        <button class="plan-btn" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join Beta Waitlist</button>
+      </div>
+
+      <!-- PRO — FEATURED -->
+      <div class="plan-card featured">
+        <div class="plan-badge">★ Most Popular</div>
+        <div class="plan-tier">Tier 02 — Core Product</div>
+        <div class="plan-name">PRO</div>
+        <div class="plan-tagline">The full income shield. Built for the fully-booked, financially stressed freelancer.</div>
+        <div class="plan-price-block">
+          <div class="plan-price" id="proPrice"><sup>$</sup><span id="proPriceNum">29</span><sub id="proPeriod">/mo</sub></div>
+        </div>
+        <div class="plan-annual-note" id="proAnnualNote">&nbsp;</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feat"><span class="feat-check">✓</span> Everything in Free</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Unlimited projects + clients</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Scope Guard FULL — AI drafts change orders in 1 click</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Collections Agent — auto follow-ups + file locking</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Income Dashboard — 30/60/90-day forecasts + gap warnings</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Brief Clarifier — risk language detection</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Chrome Extension access</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Priority support + community</li>
+        </ul>
+        <button class="plan-btn" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Get Founding Member Price →</button>
+      </div>
+
+      <!-- AGENCY -->
+      <div class="plan-card">
+        <div class="plan-tier">Tier 03 — Coming V2</div>
+        <div class="plan-name">AGENCY</div>
+        <div class="plan-tagline">For small agencies and freelancers managing subcontractors.</div>
+        <div class="plan-price-block">
+          <div class="plan-price" id="agencyPrice"><sup style="color:var(--muted)">$</sup><span id="agencyPriceNum">79</span><sub id="agencyPeriod" style="color:var(--muted)">/mo</sub></div>
+        </div>
+        <div class="plan-annual-note" id="agencyAnnualNote">&nbsp;</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feat"><span class="feat-check">✓</span> Everything in Pro</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Up to 5 team seats</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Shared client vault + project ownership</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Lead Hunter Agent — 24/7 job board monitoring</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> White-label client portal</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Advanced analytics + team reporting</li>
+          <li class="plan-feat"><span class="feat-check">✓</span> Dedicated onboarding call</li>
+        </ul>
+        <button class="plan-btn" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join Waitlist — Get Notified</button>
+      </div>
+
+    </div>
+
+    <!-- Founding Member Note -->
+    <div class="founding-note">
+      <div class="founding-note-left">
+        <div class="fn-title">🔥 Founding Member Offer — First 100 Only</div>
+        <div class="fn-desc">
+          Sign up on the waitlist today and lock in <strong>$9/month for life</strong> — before we launch at $19, then $29.
+          Founding members are locked in forever. <strong>This price closes the moment we hit 100 members</strong> — no exceptions.
+          Refer 3 friends → get <strong>6 months free</strong> at launch.
+        </div>
+      </div>
+      <div class="fn-counter">
+        <div class="fn-count">73</div>
+        <div class="fn-count-label">spots remaining</div>
+      </div>
+    </div>
+
+    <!-- Guarantees -->
+    <div class="guarantee-row">
+      <div class="guarantee-item">
+        <div class="g-icon">🔄</div>
+        <div>
+          <div class="g-title">Cancel Anytime</div>
+          <div class="g-desc">No lock-in. No cancellation fees. Cancel in one click, no questions asked.</div>
+        </div>
+      </div>
+      <div class="guarantee-item">
+        <div class="g-icon">💳</div>
+        <div>
+          <div class="g-title">No Card for Free Tier</div>
+          <div class="g-desc">Start free with zero payment info. Upgrade only when you're ready.</div>
+        </div>
+      </div>
+      <div class="guarantee-item">
+        <div class="g-icon">🔒</div>
+        <div>
+          <div class="g-title">Your Data is Yours</div>
+          <div class="g-desc">All client data, project history and AI-learned patterns are fully exportable anytime.</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- WAITLIST CTA -->
+  <section class="cta-section reveal" id="waitlist">
+    <div class="cta-inner">
+      <div class="section-label" style="justify-content:center;display:flex">Limited Beta Access</div>
+      <h2 class="cta-title">STOP WORKING<br>FOR <em>FREE.</em></h2>
+      <p class="cta-sub">Join 900+ freelancers on the waitlist. Get founding member pricing ($9/mo for life) and be first in when we launch.</p>
+      <div class="waitlist-form" id="waitlistForm">
+        <input type="email" class="waitlist-input" placeholder="your@email.com" id="emailInput" autocomplete="email"/>
+        <button class="waitlist-btn" id="waitlistBtn" onclick="handleWaitlist()">Lock My Spot →</button>
+      </div>
+      <div id="waitlistSuccess" style="display:none; max-width:480px; margin:0 auto;">
+        <div style="border:1px solid #22c55e; background:rgba(34,197,94,0.07); padding:20px 28px; display:flex; align-items:center; gap:16px;">
+          <span style="font-size:24px;">✅</span>
+          <div style="text-align:left;">
+            <div style="font-family:var(--font-mono); font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#22c55e; margin-bottom:4px;">You're on the list!</div>
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--muted);">Check your email for confirmation. Founding price locked.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cta-guarantee">✓ Free to join · No credit card · Cancel anytime</div>
+      <div class="cta-referral">★ Refer 3 friends → get 6 months free at launch</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">FREE<span>LYR</span></div>
+    <div class="footer-copy">© 2025 FREELYR. Your income. Protected. Built with ♥ for freelancers.</div>
+  </footer>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+      setTimeout(() => {
+        ring.style.left = e.clientX + 'px';
+        ring.style.top = e.clientY + 'px';
+      }, 60);
+    });
+    document.querySelectorAll('button, a, .agent-card, .pain-card').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        cursor.style.width = '20px'; cursor.style.height = '20px';
+        ring.style.width = '52px'; ring.style.height = '52px';
+      });
+      el.addEventListener('mouseleave', () => {
+        cursor.style.width = '12px'; cursor.style.height = '12px';
+        ring.style.width = '36px'; ring.style.height = '36px';
+      });
+    });
+
+    // Scroll nav
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Pricing toggle
+    let billing = 'monthly';
+    function setToggle(mode) {
+      billing = mode;
+      document.getElementById('toggleMonthly').classList.toggle('active', mode === 'monthly');
+      document.getElementById('toggleAnnual').classList.toggle('active', mode === 'annual');
+
+      if (mode === 'annual') {
+        document.getElementById('proPriceNum').textContent = '24';
+        document.getElementById('proPeriod').textContent = '/mo';
+        document.getElementById('proAnnualNote').innerHTML = 'Billed as <strong style="color:var(--bg)">$290/year</strong> · <span class="save">Save $58 (2 months free)</span>';
+        document.getElementById('agencyPriceNum').textContent = '66';
+        document.getElementById('agencyPeriod').textContent = '/mo';
+        document.getElementById('agencyAnnualNote').innerHTML = 'Billed as $790/year · <span style="color:var(--orange)">Save $158</span>';
+        document.getElementById('toggleNote').textContent = '✓ Annual selected — 2 months free unlocked';
+      } else {
+        document.getElementById('proPriceNum').textContent = '29';
+        document.getElementById('proPeriod').textContent = '/mo';
+        document.getElementById('proAnnualNote').innerHTML = '&nbsp;';
+        document.getElementById('agencyPriceNum').textContent = '79';
+        document.getElementById('agencyPeriod').textContent = '/mo';
+        document.getElementById('agencyAnnualNote').innerHTML = '&nbsp;';
+        document.getElementById('toggleNote').textContent = '💡 Switch to Annual — save 2 months free';
+      }
+    }
+
+    // Waitlist
+    // Google Forms config
+    const GOOGLE_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLScKUlt4KnYsTpH7QP6YFlpk7lxv7DfsiT5Xo0S7WgJ3NszT6g/formResponse';
+    const GOOGLE_FORM_EMAIL_FIELD = 'entry.1953727390';
+
+    function handleWaitlist() {
+      const emailEl = document.getElementById('emailInput');
+      const btn = document.getElementById('waitlistBtn');
+      const email = emailEl.value.trim();
+
+      // Validate
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        emailEl.style.borderColor = '#ff5c00';
+        emailEl.focus();
+        return;
+      }
+      emailEl.style.borderColor = '';
+
+      // Loading state
+      btn.textContent = 'Locking spot...';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+
+      // Submit to Google Forms via hidden iframe (no redirect, no CORS issues)
+      const iframe = document.createElement('iframe');
+      iframe.name = 'gform-iframe';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = GOOGLE_FORM_ACTION;
+      form.target = 'gform-iframe';
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = GOOGLE_FORM_EMAIL_FIELD;
+      input.value = email;
+      form.appendChild(input);
+
+      document.body.appendChild(form);
+      form.submit();
+
+      // Show success after short delay
+      setTimeout(() => {
+        document.getElementById('waitlistForm').style.display = 'none';
+        document.getElementById('waitlistSuccess').style.display = 'block';
+        document.body.removeChild(form);
+        // keep iframe briefly then remove
+        setTimeout(() => { if (iframe.parentNode) document.body.removeChild(iframe); }, 3000);
+      }, 900);
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('DOMContentLoaded', () => {
+      const emailInput = document.getElementById('emailInput');
+      if (emailInput) {
+        emailInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') handleWaitlist();
+        });
+      }
+    });
+  </script>
+</body>
+</html>
